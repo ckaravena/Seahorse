@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Mundos Fantásticos</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100%;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script>
+        window.addEventListener('DOMContentLoaded', function() {
+            var canvas = document.getElementById('gameCanvas');
+            var engine = new BABYLON.Engine(canvas, true);
+            var scene = new BABYLON.Scene(engine);
+            
+            var camera = new BABYLON.FollowCamera('camera', new BABYLON.Vector3(0, 2, -5), scene);
+            
+            var ground = BABYLON.MeshBuilder.CreateGround('ground', { width: 20, height: 20 }, scene);
+            var groundMaterial = new BABYLON.StandardMaterial('groundMaterial', scene);
+            groundMaterial.diffuseTexture = new BABYLON.Texture('textures/ground.jpg', scene);
+            ground.material = groundMaterial;
+            
+            var light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0, 1, 0), scene);
+            
+            var loader = new BABYLON.AssetsManager(scene);
+            var meshTask = loader.addMeshTask('horse', '', './path/to/your/obj/', 'horse.obj');
+            
+            meshTask.onSuccess = function(task) {
+                var player = task.loadedMeshes[0];
+                
+                var material = new BABYLON.StandardMaterial('playerMaterial', scene);
+                material.diffuseColor = new BABYLON.Color3(0.45, 0.75, 0.85);
+                material.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+                
+                player.material = material;
+                player.scaling = new BABYLON.Vector3(0.03, 0.03, 0.03);
+                player.position.y = 0.5;
+                
+                camera.lockedTarget = player;
+            };
+            
+            loader.load();
+            
+            var moveForward = false;
+            var moveDirection = 0; // -1 for left, 1 for right
+            var moveVertical = 0; // -1 for down, 1 for up
+            
+            var onTouchStart = function(evt) {
+                moveForward = true;
+            };
+            
+            var onTouchMove = function(evt) {
+                var currentX = evt.touches[0].clientX;
+                var currentY = evt.touches[0].clientY;
+                var centerX = canvas.width / 2;
+                var centerY = canvas.height / 2;
+                moveDirection = Math.sign(currentX - centerX);
+                moveVertical = Math.sign(currentY - centerY);
+            };
+            
+            var onTouchEnd = function(evt) {
+                moveForward = false;
+                moveDirection = 0;
+                moveVertical = 0;
+            };
+            
+            canvas.addEventListener('touchstart', onTouchStart);
+            canvas.addEventListener('touchmove', onTouchMove);
+            canvas.addEventListener('touchend', onTouchEnd);
+            
+            engine.runRenderLoop(function() {
+                if (player) {
+                    if (moveForward) {
+                        player.translate(BABYLON.Axis.Z, -0.1, BABYLON.Space.LOCAL);
+                    }
+                    player.rotate(BABYLON.Axis.Y, moveDirection * 0.02, BABYLON.Space.LOCAL);
+                    player.rotate(BABYLON.Axis.X, moveVertical * 0.02, BABYLON.Space.LOCAL);
+                }
+                scene.render();
+            });
+            
+            window.addEventListener('resize', function() {
+                engine.resize();
+            });
+        });
+    </script>
+</body>
+</html>
